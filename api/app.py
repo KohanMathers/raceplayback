@@ -12,6 +12,70 @@ import sqlite3
 from datetime import datetime
 from dotenv import load_dotenv
 
+def normalize_session_type(session_type):
+    session_map = {
+        'r': 'Race',
+        'race': 'Race',
+        'q': 'Qualifying',
+        'qualifying': 'Qualifying',
+        'sprint': 'Sprint',
+        's': 'Sprint',
+        'fp1': 'Practice 1',
+        'fp2': 'Practice 2',
+        'fp3': 'Practice 3',
+        'practice1': 'Practice 1',
+        'practice2': 'Practice 2',
+        'practice3': 'Practice 3',
+    }
+    return session_map.get(session_type.lower(), session_type)
+
+
+def normalize_gp_name(gp, year):
+    gp_map = {
+        'bahrain': 'Bahrain Grand Prix',
+        'saudi_arabia': 'Saudi Arabian Grand Prix',
+        'australia'
+        'japan': 'Japanese Grand Prix',
+        'china': 'Chinese Grand Prix',
+        'miami': 'Miami Grand Prix',
+        'emilia_romagna': 'Emilia Romagna Grand Prix',
+        'monaco': 'Monaco Grand Prix',
+        'canada': 'Canadian Grand Prix',
+        'spain': 'Spanish Grand Prix',
+        'austria': 'Austrian Grand Prix',
+        'silverstone': 'British Grand Prix',
+        'hungary': 'Hungarian Grand Prix',
+        'belgium': 'Belgian Grand Prix',
+        'netherlands': 'Dutch Grand Prix',
+        'italy': 'Italian Grand Prix',
+        'azerbaijan': 'Azerbaijan Grand Prix',
+        'singapore': 'Singapore Grand Prix',
+        'texas': 'United States Grand Prix',
+        'mexico': 'Mexico City Grand Prix',
+        'brazil': 'São Paulo Grand Prix',
+        'las_vegas': 'Las Vegas Grand Prix',
+        'qatar': 'Qatar Grand Prix',
+        'abu_dhabi': 'Abu Dhabi Grand Prix',
+    }
+    
+    gp_lower = gp.lower()
+    
+    if gp_lower in gp_map:
+        return gp_map[gp_lower]
+    
+    try:
+        events = fastf1.get_event_schedule(year)
+        for _, event in events.iterrows():
+            event_name = event['EventName']
+            if gp.lower() == event_name.lower():
+                return event_name
+            if gp.lower() in event_name.lower():
+                return event_name
+    except:
+        pass
+    
+    return gp
+
 app = Flask(__name__)
 
 load_dotenv()
@@ -611,6 +675,8 @@ def get_events(year):
 @app.route('/api/v1/sessions/<int:year>/<gp>/<session_type>/radios', methods=['GET'])
 def get_radios(year, gp, session_type):
     try:
+        normalized_session_type = normalize_session_type(session_type)
+        normalized_gp = normalize_gp_name(gp, year)
         session_key, _, _ = get_or_create_session_key(year, gp, session_type)
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
@@ -629,7 +695,7 @@ def get_radios(year, gp, session_type):
         conn.close()
         
         if not db_radios:
-            return jsonify({'total_messages': 0, 'messages': None})
+            return jsonify({'total_messages': 0, 'messages': []})
         
         columns = ['timestamp', 'utc', 'racing_number', 'audio_url', 'transcript']
         results = [dict(zip(columns, radio[2:])) for radio in db_radios]
