@@ -1,0 +1,33 @@
+package com.racereplay.racereplayserver.data;
+
+public enum TrackName {
+    ABU_DHABI,
+    AUSTRALIA,
+    AUSTRIA,
+    AZERBAIJAN,
+    BAHRAIN,
+    BELGIUM,
+    BRAZIL,
+    CANADA,
+    CHINA,
+    FRANCE,
+    HOCKENHEIMRING,
+    HUNGARY,
+    IMOLA,
+    JAPAN,
+    LAS_VEGAS,
+    MIAMI,
+    MONZA,
+    MUGELLO,
+    NETHERLANDS,
+    NURBURGRING,
+    PORTUGAL,
+    QATAR,
+    RUSSIA,
+    SAUDI_ARABIA,
+    SILVERSTONE,
+    SINGAPORE,
+    SPAIN,
+    TEXAS,
+    TURKEY
+}
