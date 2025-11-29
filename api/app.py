@@ -512,8 +512,15 @@ def get_telemetry(year, gp, session_type, driver_code, lap):
     
     if db_telemetry:
         conn.close()
-        columns = ['session_time_ms', 'x', 'y', 'gear', 'distance', 'speed', 'throttle', 'brake', 'rpm', 'drs', 'compound']
-        telemetry_list = [dict(zip(columns, row[4:])) for row in db_telemetry]
+        db_columns = ['session_time_ms', 'x', 'y', 'gear', 'distance', 'speed', 'throttle', 'brake', 'rpm', 'drs', 'compound']
+        output_columns = ['SessionTime_ms', 'X', 'Y', 'nGear', 'Distance', 'Speed', 'Throttle', 'Brake', 'RPM', 'DRS', 'Compound']
+        
+        telemetry_list = []
+        for row in db_telemetry:
+            telemetry_dict = dict(zip(output_columns, row[4:]))
+            telemetry_dict['Brake'] = bool(telemetry_dict['Brake'])
+            telemetry_list.append(telemetry_dict)
+        
         return jsonify([{'lap_number': lap, 'telemetry': telemetry_list}])
     
     session = fastf1.get_session(year, gp, session_type)
