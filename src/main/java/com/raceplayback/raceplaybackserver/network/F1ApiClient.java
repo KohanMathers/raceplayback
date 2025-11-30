@@ -59,7 +59,8 @@ public class F1ApiClient {
                     dataObject = parseAsSession(response.body(), type);
                     break;
                 case DRIVER:
-                    dataObject = parseAsDriver(response.body());
+                    int driverNumber = Integer.parseInt(endpoint.substring(endpoint.lastIndexOf('/') + 1));
+                    dataObject = parseAsDriver(response.body(), driverNumber);
                     break;
                 case TELEMETRY_POINT:
                     dataObject = parseAsTelemetryPoints(response.body());
@@ -84,24 +85,24 @@ public class F1ApiClient {
 
     private Session parseAsSession(String responseBody, SessionType sessionType) {
         JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
-        String circuitName = json.get("circuit_name").getAsString();
-        String dateString = json.get("date").getAsString();
-        String grandPrix = json.get("grand_prix").getAsString();
-        int numberOfLaps = json.get("number_of_laps").getAsInt();
-        int year = json.get("year").getAsInt();
+        String circuitName = json.get("CircuitName").getAsString();
+        String dateString = json.get("Date").getAsString();
+        String grandPrix = json.get("GrandPrix").getAsString();
+        int numberOfLaps = json.get("NumberOfLaps").getAsInt();
+        int year = json.get("Year").getAsInt();
 
         LocalDateTime date = LocalDateTime.parse(dateString, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
         return new Session(circuitName, date, grandPrix, numberOfLaps, sessionType, year);
     }
 
-    private Driver parseAsDriver(String responseBody) {
+    private Driver parseAsDriver(String responseBody, int driverNumber) {
         JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
-        String abbreviation = json.get("abbreviation").getAsString();
-        String name = json.get("name").getAsString();
-        int number = json.get("code").getAsInt();
+        String abbreviation = json.get("Abbreviation").getAsString();
+        String name = json.get("Name").getAsString();
+        String team = json.get("Team").getAsString();
 
-        return new Driver(name, abbreviation, number);
+        return new Driver(name, abbreviation, driverNumber, team);
     }
 
     private List<TelemetryPoint> parseAsTelemetryPoints(String responseBody) {
@@ -141,7 +142,7 @@ public class F1ApiClient {
         for (int i = 0; i < jsonArray.size(); i++) {
             JsonObject json = jsonArray.get(i).getAsJsonObject();
             String driverName = json.get("Driver").getAsString();
-            int driverNumber = json.get("DriverCode").getAsInt();
+            int driverNumber = json.get("DriverNumber").getAsInt();
             boolean personalBest = json.get("IsPersonalBest").getAsBoolean();
             int lapNumber = json.get("LapNumber").getAsInt();
             double lapTime = json.get("LapTime").getAsDouble();
@@ -170,15 +171,15 @@ public class F1ApiClient {
     private List<TeamRadio> parseAsTeamRadioList(String responseBody) {
         List<TeamRadio> teamRadioList = new ArrayList<>();
         JsonObject responseJson = JsonParser.parseString(responseBody).getAsJsonObject();
-        JsonArray messagesArray = responseJson.getAsJsonArray("messages");
+        JsonArray messagesArray = responseJson.getAsJsonArray("Messages");
 
         for (int i = 0; i < messagesArray.size(); i++) {
             JsonObject json = messagesArray.get(i).getAsJsonObject();
-            String audioURLString = json.get("audio_url").getAsString();
-            int driverNumber = json.get("racing_number").getAsInt();
-            String timestampString = json.get("timestamp").getAsString();
-            String transcript = json.get("transcript").getAsString();
-            String utcString = json.get("utc").getAsString();
+            String audioURLString = json.get("AudioUrl").getAsString();
+            int driverNumber = json.get("RacingNumber").getAsInt();
+            String timestampString = json.get("Timestamp").getAsString();
+            String transcript = json.get("Transcript").getAsString();
+            String utcString = json.get("Utc").getAsString();
 
             URI audioUrl = URI.create(audioURLString);
 
@@ -208,8 +209,8 @@ public class F1ApiClient {
 
         for (int i = 0; i < jsonArray.size(); i++) {
             JsonObject json = jsonArray.get(i).getAsJsonObject();
-            Long time = json.get("time").getAsLong() * 1000;
-            boolean rainfall = json.get("rainfall").getAsBoolean();
+            Long time = json.get("Time").getAsLong() * 1000;
+            double rainfall = json.get("Rainfall").getAsDouble();
 
             WeatherData weatherData = new WeatherData(time, rainfall);
             weatherDataList.add(weatherData);

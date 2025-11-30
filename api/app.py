@@ -368,11 +368,11 @@ def transcribe_year():
     api_key = request.headers.get('X-API-Key')
     
     if not api_key or api_key != TRANSCRIBE_API_KEY:
-        return jsonify({"error": "Unauthorized - Invalid or missing API key"}), 401
+        return jsonify({"Error": "Unauthorized - Invalid or missing API key"}), 401
     
     data = request.get_json()
     if not data or 'year' not in data:
-        return jsonify({"error": "Year is required in request body"}), 400
+        return jsonify({"Error": "Year is required in request body"}), 400
     
     year = data['year']
     
@@ -399,18 +399,18 @@ def transcribe_year():
         })
         
     except Exception as e:
-        return jsonify({"error": f"Error processing year {year}: {str(e)}"}), 500
+        return jsonify({"Error": f"Error processing year {year}: {str(e)}"}), 500
 
 @app.route('/api/v1/transcribe/gp', methods=['POST'])
 def transcribe_gp():
     api_key = request.headers.get('X-API-Key')
     
     if not api_key or api_key != TRANSCRIBE_API_KEY:
-        return jsonify({"error": "Unauthorized - Invalid or missing API key"}), 401
+        return jsonify({"Error": "Unauthorized - Invalid or missing API key"}), 401
     
     data = request.get_json()
     if not data or 'year' not in data or 'gp' not in data:
-        return jsonify({"error": "Year and gp are required in request body"}), 400
+        return jsonify({"Error": "Year and gp are required in request body"}), 400
     
     year = data['year']
     gp = data['gp']
@@ -436,7 +436,7 @@ def transcribe_gp():
         })
         
     except Exception as e:
-        return jsonify({"error": f"Error processing {year} {gp}: {str(e)}"}), 500
+        return jsonify({"Error": f"Error processing {year} {gp}: {str(e)}"}), 500
 
 @app.route('/api/v1/sessions/<int:year>/<gp>/<session_type>/drivers', methods=['GET'])
 def get_drivers(year, gp, session_type):
@@ -446,22 +446,26 @@ def get_drivers(year, gp, session_type):
     
     c.execute('SELECT driver_code, driver_name FROM drivers WHERE sessionKey = ?', (session_key,))
     db_drivers = c.fetchall()
-    
+
     if db_drivers:
         conn.close()
-        return jsonify([{'code': d[0], 'name': d[1]} for d in db_drivers])
-    
+        return jsonify([{'Code': d[0], 'Name': d[1]} for d in db_drivers])
+
     session = fastf1.get_session(year, gp, session_type)
     session.load()
     drivers = session.drivers
-    
+
+    drivers_list = []
     for driver_code in drivers:
+        driver = session.get_driver(driver_code)
+        driver_name = driver['FullName']
         c.execute('INSERT INTO drivers (sessionKey, driver_code, driver_name) VALUES (?, ?, ?)',
-                  (session_key, driver_code, driver_code))
-    
+                  (session_key, driver_code, driver_name))
+        drivers_list.append({'Code': driver_code, 'Name': driver_name})
+
     conn.commit()
     conn.close()
-    return jsonify([{'code': d} for d in drivers])
+    return jsonify(drivers_list)
 
 @app.route('/api/v1/sessions/<int:year>/<gp>/<session_type>/drivers/<int:number>', methods=['GET'])
 def get_driver_by_number(year, gp, session_type, number):
@@ -475,16 +479,16 @@ def get_driver_by_number(year, gp, session_type, number):
     
     if result:
         conn.close()
-        return jsonify({'code': result[0], 'name': result[1], 'abbreviation': result[2], 'team': result[3]})
-    
+        return jsonify({'Code': result[0], 'Name': result[1], 'Abbreviation': result[2], 'Team': result[3]})
+
     session = fastf1.get_session(year, gp, session_type)
     session.load()
-    
+
     driver_info = None
     for driver_code in session.drivers:
         driver = session.get_driver(driver_code)
         if str(driver['DriverNumber']) == str(number):
-            driver_info = {'code': driver_code, 'name': driver['FullName'], 'abbreviation': driver['Abbreviation'],  'team': driver['TeamName']}
+            driver_info = {'Code': driver_code, 'Name': driver['FullName'], 'Abbreviation': driver['Abbreviation'], 'Team': driver['TeamName']}
             c.execute('INSERT INTO drivers (sessionKey, driver_code, driver_name, driver_number, driver_abbreviation, driver_team) VALUES (?, ?, ?, ?, ?, ?)',
                       (session_key, driver_code, driver['FullName'], number, driver['Abbreviation'], driver['TeamName']))
             break
@@ -530,7 +534,7 @@ def get_telemetry(year, gp, session_type, driver_code, lap):
     
     if laps.empty:
         conn.close()
-        return jsonify({"error": "Driver not found"}), 404
+        return jsonify({"Error": "Driver not found"}), 404
     
     telemetry_data = []
     for _, lap_row in laps.iterrows():
@@ -568,16 +572,16 @@ def get_session_info(year, gp, session_type):
     
     if result:
         return jsonify({
-            "year": result[2],
-            "grand_prix": result[3],
-            "session_type": result[4],
-            "date": result[5],
-            "circuit_name": result[6],
-            "location": result[7],
-            "number_of_laps": result[8]
+            "Year": result[2],
+            "GrandPrix": result[3],
+            "SessionType": result[4],
+            "Date": result[5],
+            "CircuitName": result[6],
+            "Location": result[7],
+            "NumberOfLaps": result[8]
         })
-    
-    return jsonify({"error": "Session not found"}), 404
+
+    return jsonify({"Error": "Session not found"}), 404
 
 @app.route('/api/v1/sessions/<int:year>/<gp>/<session_type>/laps', methods=['GET'])
 def get_laps(year, gp, session_type):
@@ -587,11 +591,19 @@ def get_laps(year, gp, session_type):
     
     c.execute('SELECT * FROM laps WHERE sessionKey = ?', (session_key,))
     db_laps = c.fetchall()
-    
+
     if db_laps:
         conn.close()
-        columns = ['driver', 'driver_code', 'lap_number', 'lap_time', 'sector1_time', 'sector2_time', 'sector3_time', 'is_personal_best']
-        return jsonify([dict(zip(columns, lap[2:])) for lap in db_laps])
+        db_columns = ['driver', 'driver_code', 'lap_number', 'lap_time', 'sector1_time', 'sector2_time', 'sector3_time', 'is_personal_best']
+        output_columns = ['Driver', 'DriverNumber', 'LapNumber', 'LapTime', 'Sector1Time', 'Sector2Time', 'Sector3Time', 'IsPersonalBest']
+
+        laps_list = []
+        for lap in db_laps:
+            lap_dict = dict(zip(output_columns, lap[2:]))
+            lap_dict['IsPersonalBest'] = bool(lap_dict['IsPersonalBest'])
+            laps_list.append(lap_dict)
+
+        return jsonify(laps_list)
     
     session = fastf1.get_session(year, gp, session_type)
     session.load()
@@ -637,7 +649,7 @@ def get_driver_laps(year, gp, session_type, driver_code):
     
     if laps.empty:
         conn.close()
-        return jsonify({"error": "Driver not found"}), 404
+        return jsonify({"Error": "Driver not found"}), 404
     
     laps_df = laps[['Driver', 'DriverNumber', 'LapNumber', 'LapTime', 'Sector1Time', 'Sector2Time', 'Sector3Time', 'IsPersonalBest']].copy()
     laps_df['LapTime'] = laps_df['LapTime'].apply(timedelta_to_seconds)
@@ -685,7 +697,7 @@ def get_driver_laps(year, gp, session_type, driver_code):
     
     if laps.empty:
         conn.close()
-        return jsonify({"error": "Driver not found"}), 404
+        return jsonify({"Error": "Driver not found"}), 404
     
     laps_df = laps[['Driver', 'LapNumber', 'LapTime', 'Sector1Time', 'Sector2Time', 'Sector3Time', 'IsPersonalBest']].copy()
     laps_df['LapTime'] = laps_df['LapTime'].apply(timedelta_to_seconds)
@@ -712,11 +724,12 @@ def get_pit_stops(year, gp, session_type):
     
     c.execute('SELECT * FROM pit_stops WHERE sessionKey = ?', (session_key,))
     db_pits = c.fetchall()
-    
+
     if db_pits:
         conn.close()
-        columns = ['driver', 'lap_number', 'pit_in_time', 'pit_out_time', 'duration']
-        return jsonify([dict(zip(columns, pit[2:])) for pit in db_pits])
+        db_columns = ['driver', 'lap_number', 'pit_in_time', 'pit_out_time', 'duration']
+        output_columns = ['Driver', 'LapNumber', 'PitInTime', 'PitOutTime', 'Duration']
+        return jsonify([dict(zip(output_columns, pit[2:])) for pit in db_pits])
     
     session = fastf1.get_session(year, gp, session_type)
     session.load()
@@ -748,11 +761,12 @@ def get_messages(year, gp, session_type):
     
     c.execute('SELECT * FROM messages WHERE sessionKey = ?', (session_key,))
     db_messages = c.fetchall()
-    
+
     if db_messages:
         conn.close()
-        columns = ['time', 'category', 'message', 'status', 'flag', 'scope', 'sector', 'racing_number', 'lap']
-        return jsonify([dict(zip(columns, msg[2:])) for msg in db_messages])
+        db_columns = ['time', 'category', 'message', 'status', 'flag', 'scope', 'sector', 'racing_number', 'lap']
+        output_columns = ['Time', 'Category', 'Message', 'Status', 'Flag', 'Scope', 'Sector', 'RacingNumber', 'Lap']
+        return jsonify([dict(zip(output_columns, msg[2:])) for msg in db_messages])
     
     session = fastf1.get_session(year, gp, session_type)
     session.load(messages=True)
@@ -778,11 +792,12 @@ def get_weather(year, gp, session_type):
     
     c.execute('SELECT * FROM weather WHERE sessionKey = ?', (session_key,))
     db_weather = c.fetchall()
-    
+
     if db_weather:
         conn.close()
-        columns = ['time', 'rainfall']
-        return jsonify([dict(zip(columns, w[2:])) for w in db_weather])
+        db_columns = ['time', 'rainfall']
+        output_columns = ['Time', 'Rainfall']
+        return jsonify([dict(zip(output_columns, w[2:])) for w in db_weather])
     
     session = fastf1.get_session(year, gp, session_type)
     session.load(weather=True)
@@ -827,15 +842,16 @@ def get_radios(year, gp, session_type):
         conn.close()
         
         if not db_radios:
-            return jsonify({'total_messages': 0, 'messages': []})
-        
-        columns = ['timestamp', 'utc', 'racing_number', 'audio_url', 'transcript']
-        results = [dict(zip(columns, radio[2:])) for radio in db_radios]
-        
-        return jsonify({'total_messages': len(results), 'messages': results})
+            return jsonify({'TotalMessages': 0, 'Messages': []})
+
+        db_columns = ['timestamp', 'utc', 'racing_number', 'audio_url', 'transcript']
+        output_columns = ['Timestamp', 'Utc', 'RacingNumber', 'AudioUrl', 'Transcript']
+        results = [dict(zip(output_columns, radio[2:])) for radio in db_radios]
+
+        return jsonify({'TotalMessages': len(results), 'Messages': results})
         
     except Exception as e:
-        return jsonify({"error": f"Error fetching radio data: {str(e)}"}), 500
+        return jsonify({"Error": f"Error fetching radio data: {str(e)}"}), 500
 
 if __name__ == '__main__':
     init_db()

@@ -3,7 +3,7 @@ package com.raceplayback.raceplaybackserver.data;
 public enum SessionType {
     FP1("free practice 1"),
     FP2("free practice 2"),
-    FP3("free pracitce 3"),
+    FP3("free practice 3"),
     Q("qualifying"),
     SQ("sprint qualifying"),
     S("sprint"),
