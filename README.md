@@ -1,5 +1,10 @@
 # RacePlayback
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
+[![Python](https://img.shields.io/badge/Python-3.11+-green.svg)](https://www.python.org/)
+[![Minestom](https://img.shields.io/badge/Minestom-Latest-purple.svg)](https://minestom.net/)
+
 RacePlayback is an ambitious F1 replay ecosystem combining:
 
 * Python API server for session data, telemetry, and team radio
@@ -120,6 +125,36 @@ Python API Server                  Minestom Server
 
 ---
 
+## 🙏 Credits & Acknowledgments
+
+### Development
+- Kohan Mathers - Project creator, lead developer, server architecture
+  - Custom wheel models (all tire compounds, front & rear)
+  - Steering wheel model
+  - Rear wing/DRS flap model
+  - Telemetry playback system
+  - Minestom server implementation
+
+### F1 Car Models
+- AdamixGaming, Jerpix, NotGatoz - Original F1 car chassis models
+  - [Download on Modrinth](https://modrinth.com/user/AdamixGaming/resourcepacks)
+  - [Download on PlanetMinecraft](https://www.planetminecraft.com/member/adamixgaming/)
+  - Modified for RaceReplay use (wheels removed for separate rotation entities)
+
+### Data & APIs
+- FastF1 - Python library for F1 telemetry data access
+  - [FastF1 Documentation](https://docs.fastf1.dev/)
+- FIA (Fédération Internationale de l'Automobile) - Original telemetry data and team radio API
+  - Race timing data
+  - GPS telemetry
+  - Team radio audio
+
+### Special Thanks
+- Minestom Team - For the amazing server framework that makes this possible
+- F1 Community - For inspiring this project and keeping the passion alive
+
+---
+
 ## Contributing
 
 PRs welcome, but know this repo is messy, ambitious, and a little chaotic. If you understand FastF1, Minestom, and Whisper, you’re in the club.
@@ -127,5 +162,9 @@ PRs welcome, but know this repo is messy, ambitious, and a little chaotic. If yo
 ---
 
 ## License
+
+This project is a non-commercial, educational fan project created for the F1 community. All F1-related data, team names, and driver names are property of Formula One World Championship Limited and the FIA.
+
+Car models used with permission from original creators. Modified versions are used exclusively within this project.
 
 MIT License — do whatever, just don’t blame me when you fall asleep watching pixelated F1 cars.
