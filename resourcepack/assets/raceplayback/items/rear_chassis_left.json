@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+	  "model": "raceplayback:item/rear_chassis_left"
+  }
+}

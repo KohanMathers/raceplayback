@@ -7,21 +7,17 @@ import com.raceplayback.raceplaybackserver.data.Compound;
 import com.raceplayback.raceplaybackserver.data.DataModelType;
 import com.raceplayback.raceplaybackserver.data.SessionType;
 import com.raceplayback.raceplaybackserver.data.TrackName;
+import com.raceplayback.raceplaybackserver.entity.car.F1Car;
 import com.raceplayback.raceplaybackserver.network.F1ApiClient;
 
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
-import net.minestom.server.entity.Entity;
-import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.entity.Player;
-import net.minestom.server.entity.metadata.display.ItemDisplayMeta;
 import net.minestom.server.event.GlobalEventHandler;
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent;
 import net.minestom.server.instance.*;
 import net.minestom.server.instance.block.Block;
-import net.minestom.server.item.ItemStack;
-import net.minestom.server.item.Material;
 import net.minestom.server.coordinate.Pos;
 
 import org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations;
@@ -70,7 +66,7 @@ public class RacePlaybackServer {
         });
 
         testApiClients();
-        spawnTestObjects(instanceContainer);
+        spawnTestCar(instanceContainer);
 
         minecraftServer.start("0.0.0.0", 25565);
     }
@@ -82,37 +78,11 @@ public class RacePlaybackServer {
         }
     }
 
-    private static void spawnTestObjects(InstanceContainer instance) {
-        logger.info("Spawning test wheels...");
-        
-        int x = 0;
-        int y = 0;
-        for (Compound compound : Compound.values()) {
-            var frontWheel = new Entity(EntityType.ITEM_DISPLAY);
-            ItemStack frontItem = compound.createWheel(true);
-            
-            ItemDisplayMeta meta = (ItemDisplayMeta) frontWheel.getEntityMeta();
-            meta.setItemStack(frontItem);
-            meta.setHasNoGravity(true);
-            
-            frontWheel.setInstance(instance, new Pos(x, 42, y));
+    private static void spawnTestCar(InstanceContainer instance) {
+        logger.info("Spawning test car...");
 
-            if (y == 1) { y = 0; }        
-            x += 1;
-        }
-        
-        logger.info("All test wheels spawned!");
+        F1Car testCar = new F1Car("VER", Compound.SOFT);
 
-        logger.info("Spawning test steering wheel...");
-
-        var steeringWheel = new Entity(EntityType.ITEM_DISPLAY);
-        ItemStack steeringWheelItem = ItemStack.of(Material.STICK).withItemModel("raceplayback:steering_wheel");
-
-        ItemDisplayMeta meta = (ItemDisplayMeta) steeringWheel.getEntityMeta();
-        meta.setItemStack(steeringWheelItem);
-        meta.setHasNoGravity(true);
-
-        steeringWheel.setInstance(instance, new Pos(x, 42, y));
-        if (y == 1) { y = 0; }
+        testCar.spawn(instance, new Pos(0, 42, 0, 0, 0));
     }
 }

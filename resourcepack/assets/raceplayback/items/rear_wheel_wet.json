@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "raceplayback:item/rear_wheel_wet"
+	  "model": "raceplayback:item/rear_wheel_wet"
   }
 }

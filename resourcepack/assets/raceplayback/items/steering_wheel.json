@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "raceplayback:item/steering_wheel"
+	  "model": "raceplayback:item/steering_wheel"
   }
 }
