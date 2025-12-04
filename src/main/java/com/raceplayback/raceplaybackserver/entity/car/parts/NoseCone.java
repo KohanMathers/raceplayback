@@ -5,6 +5,7 @@ import net.minestom.server.coordinate.Vec;
 
 public class NoseCone extends CarPart {
     public NoseCone() {
-        super("nose_cone", new Vec(0, 0.3, 1.8));
+        super("nose_cone", new Vec(0, 0.5, 1.0));
+        rotationOffset = 180;
     }
 }

@@ -12,7 +12,8 @@ import net.minestom.server.item.Material;
 public abstract class CarPart {
     protected Entity entity;
     protected Vec offset;
-    
+    protected float rotationOffset = 0;
+
     private static final float SCALE = 1.0f;
     
     public CarPart(String modelName, Vec offset) {
@@ -43,7 +44,7 @@ public abstract class CarPart {
 
     protected void updateRotation(float yaw) {
         ItemDisplayMeta meta = (ItemDisplayMeta) entity.getEntityMeta();
-        meta.setLeftRotation(createYawRotation(yaw));
+        meta.setLeftRotation(createYawRotation(yaw + rotationOffset));
     }
 
     private float[] createYawRotation(float yaw) {
