@@ -13,7 +13,7 @@ public class F1Car {
     private final CockpitLeft cockpitLeft;
     private final CockpitMiddle cockpitMiddle;
     private final CockpitRight cockpitRight;
-    //private final FrontNose frontNose;
+    private final FrontNose frontNose;
     private final NoseCone noseCone;
     private final FrontWingLeft frontWingLeft;
     private final FrontWingRight frontWingRight;
@@ -44,7 +44,7 @@ public class F1Car {
         cockpitLeft = new CockpitLeft();
         cockpitMiddle = new CockpitMiddle();
         cockpitRight = new CockpitRight();
-        //frontNose = new FrontNose();
+        frontNose = new FrontNose();
         noseCone = new NoseCone();
         frontWingLeft = new FrontWingLeft();
         frontWingRight = new FrontWingRight();
@@ -65,7 +65,7 @@ public class F1Car {
         allParts.add(cockpitLeft);
         allParts.add(cockpitMiddle);
         allParts.add(cockpitRight);
-        //allParts.add(frontNose);
+        allParts.add(frontNose);
         allParts.add(noseCone);
         allParts.add(frontWingLeft);
         allParts.add(frontWingRight);

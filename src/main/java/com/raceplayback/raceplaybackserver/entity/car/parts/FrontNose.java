@@ -5,6 +5,6 @@ import net.minestom.server.coordinate.Vec;
 
 public class FrontNose extends CarPart {
     public FrontNose() {
-        super("front_nose", new Vec(0, 0.4, 1.2));
+        super("front_nose", new Vec(0, 0.5, 1.0));
     }
 }
