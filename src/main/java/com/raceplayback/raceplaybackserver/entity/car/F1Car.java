@@ -24,10 +24,10 @@ public class F1Car {
 
     private final FrontWheel wheelFL;
     private final FrontWheel wheelFR;
-    //private final RearWheel wheelRL;
-    // private final RearWheel wheelRR;
+    private final RearWheel wheelRL;
+    private final RearWheel wheelRR;
 
-    // private final SteeringWheel steeringWheel;
+    private final SteeringWheel steeringWheel;
 
     private final RearWing rearWing;
 
@@ -55,10 +55,10 @@ public class F1Car {
 
         wheelFL = new FrontWheel(new Vec(1.3, 0.3, 2.525), compound);
         wheelFR = new FrontWheel(new Vec(-1.3, 0.3, 2.525), compound);
-        //wheelRL = new RearWheel(new Vec(-0.7, 0.3, -1.2), compound);
-        // wheelRR = new RearWheel(new Vec(0.7, 0.3, -1.2), compound);
+        wheelRL = new RearWheel(new Vec(1.3, 0.3, -3.23), compound);
+        wheelRR = new RearWheel(new Vec(-1.3, 0.3, -3.23), compound);
 
-        // steeringWheel = new SteeringWheel();
+        steeringWheel = new SteeringWheel(new Vec(0, 0.75, 2));
 
         rearWing = new RearWing();
 
@@ -75,9 +75,9 @@ public class F1Car {
         allParts.add(rearChassisRight);
         allParts.add(wheelFL);
         allParts.add(wheelFR);
-        //allParts.add(wheelRL);
-        // allParts.add(wheelRR);
-        // allParts.add(steeringWheel);
+        allParts.add(wheelRL);
+        allParts.add(wheelRR);
+        allParts.add(steeringWheel);
         allParts.add(rearWing);
     }
     
@@ -111,9 +111,13 @@ public class F1Car {
         return rearWing.isDRSOpen();
     }
     
-    // public void setSteeringAngle(float angle) {
-    //     steeringWheel.setSteeringAngle(angle);
-    // }
+    public void setSteeringAngle(float angle) {
+         steeringWheel.setSteeringAngle(angle);
+
+         float wheelAngle = angle / 36.0f;
+         wheelFL.setWheelSteeringAngle(wheelAngle);
+         wheelFR.setWheelSteeringAngle(wheelAngle);
+    }
     
     public void setVisible(boolean visible) {
         for (CarPart part : allParts) {
@@ -137,7 +141,7 @@ public class F1Car {
 
     public void setScale(Vec scale) {
         for (CarPart part : allParts) {
-            if (part instanceof FrontWheel || part instanceof RearWheel) {
+            if (part instanceof FrontWheel || part instanceof RearWheel || part instanceof SteeringWheel) {
                 continue;
             }
             part.setCustomScale(scale);

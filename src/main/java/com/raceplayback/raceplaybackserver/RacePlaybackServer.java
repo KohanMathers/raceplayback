@@ -20,7 +20,6 @@ import net.minestom.server.event.player.PlayerChatEvent;
 import net.minestom.server.instance.*;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.coordinate.Vec;
 
 import org.everbuild.blocksandstuff.blocks.BlockPlacementRuleRegistrations;
 import org.everbuild.blocksandstuff.blocks.BlockBehaviorRuleRegistrations;
@@ -72,8 +71,6 @@ public class RacePlaybackServer {
         globalEventHandler.addListener(PlayerChatEvent.class, event -> {
             if (event.getRawMessage().equals("u")) {
                 testCar.update(new Pos(testCar.getPosition().x() - 1, testCar.getPosition().y(), testCar.getPosition().z()));
-            } else if (event.getRawMessage().equals("s")) {
-                testCar.setScale(new Vec(2.0, 2.0, 2.0));
             } else if (event.getRawMessage().equals("r")) {
                 float yaw = event.getPlayer().getHeadRotation();
                 testCar.rotate(yaw);
