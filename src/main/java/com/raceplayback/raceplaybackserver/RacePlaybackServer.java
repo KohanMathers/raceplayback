@@ -11,6 +11,7 @@ import com.raceplayback.raceplaybackserver.commands.FeedbackCommand;
 import com.raceplayback.raceplaybackserver.commands.ReportBugCommand;
 import com.raceplayback.raceplaybackserver.commands.ScanTrackCommand;
 import com.raceplayback.raceplaybackserver.commands.VisualizeCenterlineCommand;
+import com.raceplayback.raceplaybackserver.commands.VisualizeAutoCommand;
 import com.raceplayback.raceplaybackserver.data.DataModelType;
 import com.raceplayback.raceplaybackserver.data.Session;
 import com.raceplayback.raceplaybackserver.data.SessionType;
@@ -67,7 +68,7 @@ public class RacePlaybackServer {
 
     public static void main(String[] args) {
         new RacePlaybackServer();
-        MinecraftServer minecraftServer = MinecraftServer.init(new Auth.Offline());
+        MinecraftServer minecraftServer = MinecraftServer.init(new Auth.Online());
 
         InstanceManager instanceManager = MinecraftServer.getInstanceManager();
         InstanceContainer instanceContainer = instanceManager.createInstanceContainer();
@@ -85,6 +86,7 @@ public class RacePlaybackServer {
         commandManager.register(new DebugNextCommand());
         commandManager.register(new ScanTrackCommand(instanceContainer));
         commandManager.register(new VisualizeCenterlineCommand(instanceContainer));
+        commandManager.register(new VisualizeAutoCommand(instanceContainer));
         commandManager.register(new ReportBugCommand());
         commandManager.register(new SuggestionCommand());
         commandManager.register(new FeedbackCommand());
@@ -127,7 +129,7 @@ public class RacePlaybackServer {
 
         minecraftServer.start("0.0.0.0", 25565);
 
-//        testApiClients();
+        testApiClients();
     }
 
     private static void testApiClients() {

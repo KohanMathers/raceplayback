@@ -56,8 +56,10 @@ public class SessionTestCommand extends Command {
             }
             
             player.sendMessage("§aStarting replay for §b" + driver + " §aat §e" + track.name() + " " + year);
-            
+            player.sendMessage("§7Note: Automatic track mapping is available in /sessiondebug");
+
             try {
+                // Rotation offset - automatic mapping will be added to PlaybackController later
                 double rotationOffset = track == TrackName.SILVERSTONE ? -137.0 : 0.0;
 
                 PlaybackController controller = new PlaybackController(

@@ -11,6 +11,7 @@ import com.raceplayback.raceplaybackserver.entity.car.F1Car;
 import com.raceplayback.raceplaybackserver.network.F1ApiClient;
 import com.raceplayback.raceplaybackserver.util.CoordinateConverter;
 import com.raceplayback.raceplaybackserver.mapping.AdaptiveCoordinateMapper;
+import com.raceplayback.raceplaybackserver.mapping.AutomaticCoordinateMapper;
 import com.raceplayback.raceplaybackserver.mapping.TrackCenterline;
 import com.raceplayback.raceplaybackserver.mapping.TrackDataManager;
 import net.minestom.server.coordinate.Pos;
@@ -30,7 +31,9 @@ public class DebugPlaybackController {
     private F1Car car;
     private CoordinateConverter converter;
     private AdaptiveCoordinateMapper adaptiveMapper;
+    private AutomaticCoordinateMapper automaticMapper;
     private boolean useAdaptiveMapper = false;
+    private boolean useAutomaticMapper = false;
     private List<TelemetryPoint> telemetry;
     private int currentIndex = 0;
     private List<Entity> visualizationEntities = new ArrayList<>();
@@ -42,6 +45,7 @@ public class DebugPlaybackController {
     private int currentLap = 1;
     private int totalLaps;
     private double rotationOffset;
+    private Pos playerPosition;
 
     public DebugPlaybackController(int year, TrackName track, SessionType sessionType, String driverCode, Pos startPosition, double rotationOffset, Instance instance) {
         this.year = year;
@@ -49,6 +53,7 @@ public class DebugPlaybackController {
         this.sessionType = sessionType;
         this.driverCode = driverCode;
         this.rotationOffset = rotationOffset;
+        this.playerPosition = startPosition;
         this.converter = new CoordinateConverter(startPosition, rotationOffset);
 
         F1ApiClient sessionClient = new F1ApiClient(
@@ -76,27 +81,48 @@ public class DebugPlaybackController {
             return;
         }
 
-        TrackCenterline centerline = TrackDataManager.loadTrackCenterline(track);
-        if (centerline != null) {
-            server.getLogger().info("✓ Loaded track centerline for {} (length: {} blocks)",
-                track, String.format("%.1f", centerline.getTotalLength()));
+        // Try automatic mapping first (best option)
+        try {
+            server.getLogger().info("Attempting automatic track mapping...");
+            automaticMapper = AutomaticCoordinateMapper.create(
+                instance,
+                playerPosition,
+                500, // search radius
+                telemetry,
+                track
+            );
+            useAutomaticMapper = true;
+            server.getLogger().info("✓ Using AUTOMATIC COORDINATE MAPPING (best-fit transformation)");
+            server.getLogger().info("  Transformation: {}", automaticMapper.getTransformation());
+        } catch (Exception e) {
+            server.getLogger().warn("⚠ Automatic mapping failed: {}", e.getMessage());
+            server.getLogger().info("Falling back to manual track data...");
 
-            adaptiveMapper = new AdaptiveCoordinateMapper(centerline, 66.0);
-            adaptiveMapper.initializeWithTelemetry(telemetry);
-            useAdaptiveMapper = true;
+            // Fallback to manual adaptive mapper
+            TrackCenterline centerline = TrackDataManager.loadTrackCenterline(track);
+            if (centerline != null) {
+                server.getLogger().info("✓ Loaded track centerline for {} (length: {} blocks)",
+                    track, String.format("%.1f", centerline.getTotalLength()));
 
-            server.getLogger().info("✓ Using ADAPTIVE COORDINATE MAPPING (arc-length parameterization)");
-        } else {
-            server.getLogger().warn("⚠ No track data found for {}. Using legacy linear mapping.", track);
-            server.getLogger().warn("⚠ Run /scantrack {} <radius> to set up adaptive mapping!", track);
-            useAdaptiveMapper = false;
+                adaptiveMapper = new AdaptiveCoordinateMapper(centerline, 66.0);
+                adaptiveMapper.initializeWithTelemetry(telemetry);
+                useAdaptiveMapper = true;
+
+                server.getLogger().info("✓ Using ADAPTIVE COORDINATE MAPPING (arc-length parameterization)");
+            } else {
+                server.getLogger().warn("⚠ No track data found for {}. Using legacy linear mapping.", track);
+                server.getLogger().warn("⚠ The automatic mapper couldn't detect the track.", track);
+                useAdaptiveMapper = false;
+            }
         }
 
         Compound compound = telemetry.get(0).compound();
         car = new F1Car(driverCode, compound);
 
         Pos startPos;
-        if (useAdaptiveMapper) {
+        if (useAutomaticMapper) {
+            startPos = automaticMapper.mapTelemetryPoint(0);
+        } else if (useAdaptiveMapper) {
             startPos = adaptiveMapper.mapTelemetryPoint(0);
         } else {
             startPos = converter.toMinecraftPos(
@@ -146,7 +172,28 @@ public class DebugPlaybackController {
         float yaw = 0;
         float nextYaw = 0;
 
-        if (useAdaptiveMapper) {
+        if (useAutomaticMapper) {
+            position = automaticMapper.mapTelemetryPoint(currentIndex);
+
+            server.getLogger().info("=== AUTOMATIC COORDINATE MAPPING ===");
+            server.getLogger().info("  Minecraft X: {}", position.x());
+            server.getLogger().info("  Minecraft Y: {}", position.y());
+            server.getLogger().info("  Minecraft Z: {}", position.z());
+            server.getLogger().info("  Transformation: scale={}, rotation={}°",
+                String.format("%.4f", automaticMapper.getTransformation().scale()),
+                String.format("%.2f", automaticMapper.getTransformation().getRotationDegrees()));
+
+            if (currentIndex < telemetry.size() - 1) {
+                yaw = automaticMapper.calculateYaw(currentIndex);
+
+                if (currentIndex < telemetry.size() - 2) {
+                    nextYaw = automaticMapper.calculateYaw(currentIndex + 1);
+                    server.getLogger().info("  Yaw: {}°", String.format("%.2f", yaw));
+                    server.getLogger().info("  Next Yaw: {}°", String.format("%.2f", nextYaw));
+                    server.getLogger().info("  Yaw Delta (turn rate): {}°", String.format("%.2f", nextYaw - yaw));
+                }
+            }
+        } else if (useAdaptiveMapper) {
             position = adaptiveMapper.mapTelemetryPoint(currentIndex);
 
             server.getLogger().info("=== ADAPTIVE COORDINATE MAPPING ===");
@@ -285,7 +332,9 @@ public class DebugPlaybackController {
         for (int i = 0; i < telemetry.size(); i++) {
             Pos pos;
 
-            if (useAdaptiveMapper) {
+            if (useAutomaticMapper) {
+                pos = automaticMapper.mapTelemetryPoint(i).withY(65);
+            } else if (useAdaptiveMapper) {
                 pos = adaptiveMapper.mapTelemetryPoint(i).withY(65);
             } else {
                 TelemetryPoint point = telemetry.get(i);
@@ -307,7 +356,9 @@ public class DebugPlaybackController {
         }
 
         server.getLogger().info("Lap visualization complete! Drew {} gold block displays", telemetry.size());
-        if (useAdaptiveMapper) {
+        if (useAutomaticMapper) {
+            server.getLogger().info("Using AUTOMATIC mapping - best-fit transformation");
+        } else if (useAdaptiveMapper) {
             server.getLogger().info("Using ADAPTIVE mapping - racing line follows track centerline");
         } else {
             server.getLogger().info("Using LEGACY mapping with rotation offset: {}°", rotationOffset);
