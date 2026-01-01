@@ -4,7 +4,7 @@ import net.minestom.server.coordinate.Pos;
 import java.math.BigDecimal;
 
 public class CoordinateConverter {
-    private static final double SCALE = 0.125;
+    private static final double SCALE = 0.082;
 
     private final double originX;
     private final double originZ;
@@ -28,8 +28,8 @@ public class CoordinateConverter {
             firstTelemetryY = telY;
         }
 
-        double deltaX = -(telX - firstTelemetryX) * SCALE;
-        double deltaZ = (telY - firstTelemetryY) * SCALE;
+        double deltaX = (telX - firstTelemetryX) * SCALE;
+        double deltaZ = -(telY - firstTelemetryY) * SCALE;
 
         double rotationRad = Math.toRadians(rotationOffset);
         double rotatedX = deltaX * Math.cos(rotationRad) - deltaZ * Math.sin(rotationRad);

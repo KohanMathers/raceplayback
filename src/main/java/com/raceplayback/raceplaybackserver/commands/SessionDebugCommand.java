@@ -64,7 +64,7 @@ public class SessionDebugCommand extends Command {
             player.sendMessage("§7Use /debugnext to step through each telemetry point");
 
             try {
-                double rotationOffset = track == TrackName.SILVERSTONE ? -160.0 : 0.0;
+                double rotationOffset = track == TrackName.SILVERSTONE ? -137.0 : 0.0;
 
                 activeController = new DebugPlaybackController(
                     year,

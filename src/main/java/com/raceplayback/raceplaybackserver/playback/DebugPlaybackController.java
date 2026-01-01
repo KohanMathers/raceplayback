@@ -11,14 +11,8 @@ import com.raceplayback.raceplaybackserver.entity.car.F1Car;
 import com.raceplayback.raceplaybackserver.network.F1ApiClient;
 import com.raceplayback.raceplaybackserver.util.CoordinateConverter;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.coordinate.Vec;
-import net.minestom.server.entity.Entity;
-import net.minestom.server.entity.EntityType;
-import net.minestom.server.entity.metadata.display.BlockDisplayMeta;
 import net.minestom.server.instance.Instance;
-import net.minestom.server.instance.block.Block;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class DebugPlaybackController {
@@ -28,7 +22,6 @@ public class DebugPlaybackController {
     private CoordinateConverter converter;
     private List<TelemetryPoint> telemetry;
     private int currentIndex = 0;
-    private List<Entity> visualizationEntities = new ArrayList<>();
 
     private int year;
     private TrackName track;
@@ -82,9 +75,6 @@ public class DebugPlaybackController {
         car.spawn(instance, startPos);
 
         server.getLogger().info("Debug session initialized with {} telemetry points", telemetry.size());
-
-        drawLapVisualization(instance);
-
         server.getLogger().info("Use /debugnext to step through each point");
     }
 
@@ -237,44 +227,10 @@ public class DebugPlaybackController {
         return (List<TelemetryPoint>) client.getData();
     }
 
-    private void drawLapVisualization(Instance instance) {
-        if (telemetry == null || telemetry.isEmpty()) {
-            server.getLogger().warn("No telemetry data to visualize!");
-            return;
-        }
-
-        server.getLogger().info("Drawing lap visualization with {} points...", telemetry.size());
-
-        for (TelemetryPoint point : telemetry) {
-            Pos pos = converter.toMinecraftPos(
-                point.x(),
-                point.y(),
-                65
-            );
-
-            Entity blockDisplay = new Entity(EntityType.BLOCK_DISPLAY);
-            BlockDisplayMeta meta = (BlockDisplayMeta) blockDisplay.getEntityMeta();
-            meta.setBlockState(Block.GOLD_BLOCK);
-            meta.setScale(new Vec(0.25, 0.25, 0.25));
-            meta.setHasNoGravity(true);
-
-            blockDisplay.setInstance(instance, pos);
-            visualizationEntities.add(blockDisplay);
-        }
-
-        server.getLogger().info("Lap visualization complete! Drew {} gold block displays", telemetry.size());
-        server.getLogger().info("Track oriented with rotation offset: {}°", rotationOffset);
-    }
-
     public void stop() {
         if (car != null) {
             car.remove();
         }
-
-        for (Entity entity : visualizationEntities) {
-            entity.remove();
-        }
-        visualizationEntities.clear();
     }
 
     public int getCurrentIndex() {
