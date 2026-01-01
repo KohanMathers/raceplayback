@@ -10,10 +10,6 @@ import com.raceplayback.raceplaybackserver.data.TrackName;
 import com.raceplayback.raceplaybackserver.entity.car.F1Car;
 import com.raceplayback.raceplaybackserver.network.F1ApiClient;
 import com.raceplayback.raceplaybackserver.util.CoordinateConverter;
-import com.raceplayback.raceplaybackserver.mapping.AdaptiveCoordinateMapper;
-import com.raceplayback.raceplaybackserver.mapping.AutomaticCoordinateMapper;
-import com.raceplayback.raceplaybackserver.mapping.TrackCenterline;
-import com.raceplayback.raceplaybackserver.mapping.TrackDataManager;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -30,10 +26,6 @@ public class DebugPlaybackController {
 
     private F1Car car;
     private CoordinateConverter converter;
-    private AdaptiveCoordinateMapper adaptiveMapper;
-    private AutomaticCoordinateMapper automaticMapper;
-    private boolean useAdaptiveMapper = false;
-    private boolean useAutomaticMapper = false;
     private List<TelemetryPoint> telemetry;
     private int currentIndex = 0;
     private List<Entity> visualizationEntities = new ArrayList<>();
@@ -45,7 +37,6 @@ public class DebugPlaybackController {
     private int currentLap = 1;
     private int totalLaps;
     private double rotationOffset;
-    private Pos playerPosition;
 
     public DebugPlaybackController(int year, TrackName track, SessionType sessionType, String driverCode, Pos startPosition, double rotationOffset, Instance instance) {
         this.year = year;
@@ -53,7 +44,6 @@ public class DebugPlaybackController {
         this.sessionType = sessionType;
         this.driverCode = driverCode;
         this.rotationOffset = rotationOffset;
-        this.playerPosition = startPosition;
         this.converter = new CoordinateConverter(startPosition, rotationOffset);
 
         F1ApiClient sessionClient = new F1ApiClient(
@@ -81,57 +71,14 @@ public class DebugPlaybackController {
             return;
         }
 
-        // Try automatic mapping first (best option)
-        try {
-            server.getLogger().info("Attempting automatic track mapping...");
-            automaticMapper = AutomaticCoordinateMapper.create(
-                instance,
-                playerPosition,
-                500, // search radius
-                telemetry,
-                track
-            );
-            useAutomaticMapper = true;
-            server.getLogger().info("✓ Using AUTOMATIC COORDINATE MAPPING (best-fit transformation)");
-            server.getLogger().info("  Transformation: {}", automaticMapper.getTransformation());
-        } catch (Exception e) {
-            server.getLogger().warn("⚠ Automatic mapping failed: {}", e.getMessage());
-            server.getLogger().info("Falling back to manual track data...");
-
-            // Fallback to manual adaptive mapper
-            TrackCenterline centerline = TrackDataManager.loadTrackCenterline(track);
-            if (centerline != null) {
-                server.getLogger().info("✓ Loaded track centerline for {} (length: {} blocks)",
-                    track, String.format("%.1f", centerline.getTotalLength()));
-
-                adaptiveMapper = new AdaptiveCoordinateMapper(centerline, 66.0);
-                adaptiveMapper.initializeWithTelemetry(telemetry);
-                useAdaptiveMapper = true;
-
-                server.getLogger().info("✓ Using ADAPTIVE COORDINATE MAPPING (arc-length parameterization)");
-            } else {
-                server.getLogger().warn("⚠ No track data found for {}. Using legacy linear mapping.", track);
-                server.getLogger().warn("⚠ The automatic mapper couldn't detect the track.", track);
-                useAdaptiveMapper = false;
-            }
-        }
-
         Compound compound = telemetry.get(0).compound();
+
         car = new F1Car(driverCode, compound);
-
-        Pos startPos;
-        if (useAutomaticMapper) {
-            startPos = automaticMapper.mapTelemetryPoint(0);
-        } else if (useAdaptiveMapper) {
-            startPos = adaptiveMapper.mapTelemetryPoint(0);
-        } else {
-            startPos = converter.toMinecraftPos(
-                telemetry.get(0).x(),
-                telemetry.get(0).y(),
-                66
-            );
-        }
-
+        Pos startPos = converter.toMinecraftPos(
+            telemetry.get(0).x(),
+            telemetry.get(0).y(),
+            66
+        );
         car.spawn(instance, startPos);
 
         server.getLogger().info("Debug session initialized with {} telemetry points", telemetry.size());
@@ -168,87 +115,56 @@ public class DebugPlaybackController {
         server.getLogger().info("  RPM: {}", current.rpm());
         server.getLogger().info("  Compound: {}", current.compound());
 
-        Pos position;
+        Pos position = converter.toMinecraftPos(
+            current.x(),
+            current.y(),
+            66
+        );
+
+        server.getLogger().info("=== AFTER COORDINATE CONVERSION ===");
+        server.getLogger().info("  Minecraft X: {}", position.x());
+        server.getLogger().info("  Minecraft Y: {}", position.y());
+        server.getLogger().info("  Minecraft Z: {}", position.z());
+
         float yaw = 0;
         float nextYaw = 0;
-
-        if (useAutomaticMapper) {
-            position = automaticMapper.mapTelemetryPoint(currentIndex);
-
-            server.getLogger().info("=== AUTOMATIC COORDINATE MAPPING ===");
-            server.getLogger().info("  Minecraft X: {}", position.x());
-            server.getLogger().info("  Minecraft Y: {}", position.y());
-            server.getLogger().info("  Minecraft Z: {}", position.z());
-            server.getLogger().info("  Transformation: scale={}, rotation={}°",
-                String.format("%.4f", automaticMapper.getTransformation().scale()),
-                String.format("%.2f", automaticMapper.getTransformation().getRotationDegrees()));
-
-            if (currentIndex < telemetry.size() - 1) {
-                yaw = automaticMapper.calculateYaw(currentIndex);
-
-                if (currentIndex < telemetry.size() - 2) {
-                    nextYaw = automaticMapper.calculateYaw(currentIndex + 1);
-                    server.getLogger().info("  Yaw: {}°", String.format("%.2f", yaw));
-                    server.getLogger().info("  Next Yaw: {}°", String.format("%.2f", nextYaw));
-                    server.getLogger().info("  Yaw Delta (turn rate): {}°", String.format("%.2f", nextYaw - yaw));
-                }
-            }
-        } else if (useAdaptiveMapper) {
-            position = adaptiveMapper.mapTelemetryPoint(currentIndex);
-
-            server.getLogger().info("=== ADAPTIVE COORDINATE MAPPING ===");
-            server.getLogger().info("  Minecraft X: {}", position.x());
-            server.getLogger().info("  Minecraft Y: {}", position.y());
-            server.getLogger().info("  Minecraft Z: {}", position.z());
-
-            var mappingResult = adaptiveMapper.getMappingResult(currentIndex);
-            server.getLogger().info("  Track Progress: {}%", String.format("%.2f", mappingResult.trackPercent * 100));
-            server.getLogger().info("  Lateral Offset: {} blocks", String.format("%.2f", mappingResult.lateralOffset));
-
-            if (currentIndex < telemetry.size() - 1) {
-                yaw = adaptiveMapper.calculateYaw(currentIndex);
-
-                if (currentIndex < telemetry.size() - 2) {
-                    nextYaw = adaptiveMapper.calculateYaw(currentIndex + 1);
-                    server.getLogger().info("  Yaw: {}°", String.format("%.2f", yaw));
-                    server.getLogger().info("  Next Yaw: {}°", String.format("%.2f", nextYaw));
-                    server.getLogger().info("  Yaw Delta (turn rate): {}°", String.format("%.2f", nextYaw - yaw));
-                }
-            }
-        } else {
-            position = converter.toMinecraftPos(
-                current.x(),
-                current.y(),
+        if (currentIndex < telemetry.size() - 1) {
+            TelemetryPoint next = telemetry.get(currentIndex + 1);
+            Pos nextPos = converter.toMinecraftPos(
+                next.x(),
+                next.y(),
                 66
             );
 
-            server.getLogger().info("=== LEGACY COORDINATE CONVERSION ===");
-            server.getLogger().info("  Minecraft X: {}", position.x());
-            server.getLogger().info("  Minecraft Y: {}", position.y());
-            server.getLogger().info("  Minecraft Z: {}", position.z());
+            server.getLogger().info("=== NEXT POINT FOR YAW CALCULATION ===");
+            server.getLogger().info("  Next Telemetry X: {}", next.x());
+            server.getLogger().info("  Next Telemetry Y: {}", next.y());
+            server.getLogger().info("  Next Minecraft X: {}", nextPos.x());
+            server.getLogger().info("  Next Minecraft Z: {}", nextPos.z());
 
-            if (currentIndex < telemetry.size() - 1) {
-                TelemetryPoint next = telemetry.get(currentIndex + 1);
-                Pos nextPos = converter.toMinecraftPos(
-                    next.x(),
-                    next.y(),
+            yaw = converter.calculateYaw(position, nextPos);
+
+            server.getLogger().info("=== YAW CALCULATION ===");
+            server.getLogger().info("  Delta X: {}", nextPos.x() - position.x());
+            server.getLogger().info("  Delta Z: {}", nextPos.z() - position.z());
+            server.getLogger().info("  Calculated Yaw: {}°", yaw);
+
+            if (currentIndex < telemetry.size() - 2) {
+                TelemetryPoint nextNext = telemetry.get(currentIndex + 2);
+                Pos nextNextPos = converter.toMinecraftPos(
+                    nextNext.x(),
+                    nextNext.y(),
                     66
                 );
+                nextYaw = converter.calculateYaw(nextPos, nextNextPos);
 
-                yaw = converter.calculateYaw(position, nextPos);
-                server.getLogger().info("  Calculated Yaw: {}°", yaw);
-
-                if (currentIndex < telemetry.size() - 2) {
-                    TelemetryPoint nextNext = telemetry.get(currentIndex + 2);
-                    Pos nextNextPos = converter.toMinecraftPos(
-                        nextNext.x(),
-                        nextNext.y(),
-                        66
-                    );
-                    nextYaw = converter.calculateYaw(nextPos, nextNextPos);
-                    server.getLogger().info("  Yaw Delta (turn rate): {}°", nextYaw - yaw);
-                }
+                server.getLogger().info("=== NEXT YAW FOR STEERING ===");
+                server.getLogger().info("  Next Yaw: {}°", nextYaw);
+                server.getLogger().info("  Yaw Delta (turn rate): {}°", nextYaw - yaw);
             }
+        } else {
+            server.getLogger().info("=== YAW CALCULATION ===");
+            server.getLogger().info("  Last point - using yaw 0°");
         }
 
         Pos posWithYaw = position.withYaw(yaw);
@@ -329,21 +245,12 @@ public class DebugPlaybackController {
 
         server.getLogger().info("Drawing lap visualization with {} points...", telemetry.size());
 
-        for (int i = 0; i < telemetry.size(); i++) {
-            Pos pos;
-
-            if (useAutomaticMapper) {
-                pos = automaticMapper.mapTelemetryPoint(i).withY(65);
-            } else if (useAdaptiveMapper) {
-                pos = adaptiveMapper.mapTelemetryPoint(i).withY(65);
-            } else {
-                TelemetryPoint point = telemetry.get(i);
-                pos = converter.toMinecraftPos(
-                    point.x(),
-                    point.y(),
-                    65
-                );
-            }
+        for (TelemetryPoint point : telemetry) {
+            Pos pos = converter.toMinecraftPos(
+                point.x(),
+                point.y(),
+                65
+            );
 
             Entity blockDisplay = new Entity(EntityType.BLOCK_DISPLAY);
             BlockDisplayMeta meta = (BlockDisplayMeta) blockDisplay.getEntityMeta();
@@ -356,13 +263,7 @@ public class DebugPlaybackController {
         }
 
         server.getLogger().info("Lap visualization complete! Drew {} gold block displays", telemetry.size());
-        if (useAutomaticMapper) {
-            server.getLogger().info("Using AUTOMATIC mapping - best-fit transformation");
-        } else if (useAdaptiveMapper) {
-            server.getLogger().info("Using ADAPTIVE mapping - racing line follows track centerline");
-        } else {
-            server.getLogger().info("Using LEGACY mapping with rotation offset: {}°", rotationOffset);
-        }
+        server.getLogger().info("Track oriented with rotation offset: {}°", rotationOffset);
     }
 
     public void stop() {
